@@ -4,6 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>RUBYRED | Advance Request</title>
+<link rel="preconnect" href="https://script.google.com">
+<link rel="preconnect" href="https://script.googleusercontent.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
 
 <style>
@@ -337,7 +339,7 @@
   function isOpen() {
     if (TEST_MODE) return true;
     const d = todayInCairo();
-    return d >= 24 && d <= 26;
+    return d >= 28 && d <= 30;
   }
 
   // If closed: show the notice and disable the form
@@ -345,6 +347,11 @@
     $("closedBox").classList.remove("hidden");
     $("codeInput").disabled = true;
     $("searchBtn").disabled = true;
+  } else {
+    // Warm up the server on page load so the first search is fast
+    // (Google Apps Script is slow on the first request)
+    try { fetch(SCRIPT_URL + "?action=lookup&code=0").catch(() => {}); } catch (e) {}
+    $("codeInput").focus();
   }
 
   // ---------- Step 1: find the employee by code ----------
@@ -407,10 +414,9 @@
       const data = await res.json();
 
       if (data.ok) {
-        showMsg($("msg2"), "success", "ok", { amount: amount });
-        $("amountInput").disabled = true;
-        $("backBtn").classList.add("hidden");
-        $("submitBtn").classList.add("hidden");
+        // Success: go straight back to the main page for the next worker
+        resetForNext();
+        showMsg($("msg1"), "success", "ok", { amount: amount });
         return;
       }
       showMsg($("msg2"), serverError(data.error), "err");
@@ -420,6 +426,21 @@
 
     $("submitBtn").disabled = false;
     $("submitBtn").textContent = t("submitBtn");
+  }
+
+  // Back to the main page, clean and ready for a new worker
+  function resetForNext() {
+    $("step2").classList.add("hidden");
+    $("step1").classList.remove("hidden");
+    $("codeInput").value = "";
+    $("amountInput").value = "";
+    $("amountInput").disabled = false;
+    $("submitBtn").disabled = false;
+    $("submitBtn").textContent = t("submitBtn");
+    $("submitBtn").classList.remove("hidden");
+    $("backBtn").classList.remove("hidden");
+    hideMsg($("msg2"));
+    $("codeInput").focus();
   }
 
   function goBack() {
